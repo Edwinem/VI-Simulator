@@ -43,11 +43,11 @@ Eigen::Matrix<Scalar, 3, 3> create_skew(const Eigen::Matrix<Scalar, 3, 1> &w) {
 }
 
 struct termCriteria {
-  enum {
-    COUNT,
-    MAX_ITER,
-    EPS
-  } Type;
+  enum Type {
+    COUNT=1,
+    MAX_ITER=COUNT,
+    EPS=2
+  } ;
 
   int maxCount;
   double epsilon;
@@ -138,10 +138,11 @@ void undistortPointsIMPL(const std::vector<Eigen::Matrix<POINT_FLOAT, 2, 1>,
     bool valid = (s == 4 || s == 5 || s == 8 || s == 12 || s == 14);
     assert(valid);
     valid_distoration = valid;
-    k = dist.template cast<double>();
+    VecXd temp_k=dist.template cast<double>();
+    k.segment(0,temp_k.size())=temp_k;
   }
 
-  if (k[12] != 0 || k[13] != 0) {
+  if ((k.size()> 12) && (k[12] != 0 || k[13] != 0)) {
     computeTiltProjectionMatrixIMPL<double>(k[12], k[13], NULL, NULL, NULL, &invMatTilt);
     computeTiltProjectionMatrixIMPL<double>(k[12], k[13], &matTilt, NULL, NULL);
   }
@@ -385,8 +386,8 @@ void undistortPoints(const std::vector<Eigen::Matrix<float, 2, 1>,
                                  Eigen::aligned_allocator<Eigen::Matrix<float, 2, 1>>> &output_pts,
                      const Mat33d &K,
                      const VecXd &dist,
-                     const MatXd &R,
-                     const MatXd &P) {
+                     const MatXd &R=MatXd(),
+                     const MatXd &P=MatXd()) {
 
   undistortPointsIMPL(input_pts, output_pts, K, dist, R, P);
 }
@@ -437,6 +438,17 @@ void FishEyeundistortPoints(const Eigen::Vector2f &distorted_pts,
   input.push_back(distorted_pts);
   FishEyeundistortPointsIMPL(input, output, K, D, R, P);
   undistorted_pts=output[0];
+}
+
+void FishEyeundistortPoints(const std::vector<Eigen::Matrix<float, 2, 1>,
+                                              Eigen::aligned_allocator<Eigen::Matrix<float, 2, 1>>> &input_pts,
+                            std::vector<Eigen::Matrix<float, 2, 1>,
+                                        Eigen::aligned_allocator<Eigen::Matrix<float, 2, 1>>> &output_pts,
+                            const Mat33d &K,
+                            const VecXd &D,
+                            const MatXd &R=MatXd(),
+                            const MatXd &P=MatXd()) {
+  FishEyeundistortPointsIMPL(input_pts, output_pts, K, D, R, P);
 }
 
 }

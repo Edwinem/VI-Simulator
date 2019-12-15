@@ -37,17 +37,17 @@ namespace vi_sim {
 
 
 struct SimParams {
-  std::string trajectory_file="./vi_simulator/data/udel_gore.txt"; //file_path to trajectory e.g in data directory
+  std::string trajectory_file="../data/udel_gore.txt"; //file_path to trajectory e.g in data directory
   double freq_cam=10;
   double freq_imu=200;
-  double distance_threshold;
+  double distance_threshold=0.5;
   int seed_state_init = 0;
   int sim_seed_preturb = 0;
   int sim_seed_measurements = 0;
   int max_cameras = 1;
   int use_stereo = false;
   int num_pts = 200;
-  Eigen::Vector3d grav;
+  std::vector<double> grav={0.0,0.0,9.81};
 
   double calib_camimu_dt = 0.0;
 
@@ -90,7 +90,7 @@ public:
    * @brief Default constructor, will load all configuration variables
    * @param nh ROS node handler which we will load parameters from
    */
-  Simulator(SimParams sim_params=SimParams());
+  explicit Simulator(SimParams sim_params=SimParams());
 
   /**
    * @brief Returns if we are actively simulating
@@ -115,6 +115,13 @@ public:
    * @return True if we have a state
    */
   bool get_state(double desired_time, Eigen::Matrix<double,17,1> &imustate);
+  /**
+ * @brief Get the simulation state at a specified timestep
+ * @param desired_time Timestamp we want to get the state at
+ * @param pose_state State in the MSCKF ordering: [time(sec),q_GtoI,p_IinG]
+ * @return True if we have a state
+ */
+  bool get_pose(double desired_time, Eigen::Matrix<double,8,1> &pose_state);
 
   /**
    * @brief Gets the next inertial reading if we have one.
@@ -137,7 +144,7 @@ public:
 
 
   /// Returns the true 3d map of features
-  vi_sim::AlignedUnorderedMap<size_t,Vec3d>::type get_map() {
+  const vi_sim::AlignedUnorderedMap<size_t,Vec3d>::type& get_map() {
     return featmap;
   }
 
@@ -159,6 +166,10 @@ public:
   /// Get number of cameras that we have
   int get_num_cameras() {
     return max_cameras;
+  }
+
+  double get_start_time() {
+    return spline.get_start_time();
   }
 
 
@@ -221,6 +232,8 @@ protected:
   /// If our simulation is running
   bool is_running;
 
+  std::vector<std::vector<Eigen::Matrix4d,Eigen::aligned_allocator<Eigen::Matrix4d>>> gt_poses;
+
   //===================================================================
   // Simulation specific variables
   //===================================================================
@@ -253,6 +266,7 @@ protected:
   Eigen::Vector3d true_bias_gyro = Eigen::Vector3d::Zero();
 
   // Our history of true biases
+  //std::map<double,size_t> hist_true_bias_time;
   std::vector<double> hist_true_bias_time;
   std::vector<Eigen::Vector3d> hist_true_bias_accel;
   std::vector<Eigen::Vector3d> hist_true_bias_gyro;

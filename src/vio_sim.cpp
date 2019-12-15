@@ -128,8 +128,7 @@ Simulator::Simulator(SimParams sim_params) {
   }
 
   // Global gravity
-  std::vector<double> vec_gravity;
-  std::vector<double> vec_gravity_default = {0.0, 0.0, 9.81};
+  std::vector<double> vec_gravity=sim_params.grav;
   gravity << vec_gravity.at(0), vec_gravity.at(1), vec_gravity.at(2);
 
   // Timeoffset from camera to IMU
@@ -305,7 +304,10 @@ Simulator::Simulator(SimParams sim_params) {
   //double dt = 0.25/freq_cam;
   double dt = 0.25;
   size_t mapsize = featmap.size();
-  // ROS_INFO("[SIM]: Generating map features at %d rate",(int)(1.0/dt));
+  std::cout << "[SIM]: Generating map features at " <<(int)(1.0/dt) << " rate\n";
+
+  gt_poses.resize(max_cameras);
+
 
   // Loop through each camera
   // NOTE: we loop through cameras here so that the feature map for camera 1 will always be the same
@@ -315,8 +317,14 @@ Simulator::Simulator(SimParams sim_params) {
     // Reset the start time
     double time_synth = spline.get_start_time();
 
+    int num_iter=(spline.get_end_time()-time_synth)/dt;
+    const int percentage=10;
+    int tenth=num_iter/percentage;
+
     // Loop through each pose and generate our feature map in them!!!!
-    while (1) {
+    int counter=0;
+    int total_percentage=percentage;
+    while (true) {
       // Get the pose at the current timestep
       Eigen::Matrix3d R_GtoI;
       Eigen::Vector3d p_IinG;
@@ -324,7 +332,10 @@ Simulator::Simulator(SimParams sim_params) {
       // We have finished generating features
       if (!success_pose)
         break;
-
+//      Eigen::Matrix4d gt_pose=Eigen::Matrix4d::Identity();
+//      gt_pose.block<3,3>(0,0)=R_GtoI.transpose();
+//      gt_pose.block<3,1>(0,3)=p_IinG;
+//      gt_poses[i].push_back(gt_pose);
       // Get the uv features for this frame
       std::vector<std::pair<size_t, Eigen::VectorXf>> uvs = project_pointcloud(R_GtoI, p_IinG, i, featmap);
       // If we do not have enough, generate more
@@ -334,10 +345,21 @@ Simulator::Simulator(SimParams sim_params) {
 
       // Move forward in time
       time_synth += dt;
+      if(++counter%tenth==0){
+        double value=(double(counter)/num_iter)*100.0;
+        std::cout << total_percentage << "%\n";
+        total_percentage+=percentage;
+        if(total_percentage==20){
+          break;
+        }
+      }
+
     }
 
+
     // Debug print
-    //ROS_INFO("[SIM]: Generated %d map features in total over %d frames (camera %d)",(int)(featmap.size()-mapsize),(int)((time_synth-spline.get_start_time())/dt),i);
+    std::cout <<"[SIM]: Generated " <<(int)(featmap.size()-mapsize) << "map features in total over " <<
+    (int)((time_synth-spline.get_start_time())/dt) <<" frames (camera %d)";//,(int)(featmap.size()-mapsize),,i);
     mapsize = featmap.size();
 
   }
@@ -346,7 +368,7 @@ Simulator::Simulator(SimParams sim_params) {
   //for(const auto &feat : featmap) {
   //    cout << feat.second(0) << "," << feat.second(1) << "," << feat.second(2) << std::endl;
   //}
-  sleep(3);
+  //sleep(3);
 
 }
 
@@ -395,6 +417,26 @@ bool Simulator::get_state(double desired_time, Eigen::Matrix<double, 17, 1> &imu
   imustate.block(11, 0, 3, 1) = true_bg_interp;
   imustate.block(14, 0, 3, 1) = true_ba_interp;
   return true;
+
+}
+
+bool Simulator::get_pose(double desired_time, Eigen::Matrix<double, 8, 1> &pose_state) {
+
+  // Set to default state
+  pose_state.setZero();
+  pose_state(4) = 1;
+
+  // Current state values
+  Eigen::Matrix3d R_GtoI;
+  Eigen::Vector3d p_IinG, w_IinI, v_IinG;
+
+  // Get the pose, velocity, and acceleration
+  bool success_vel = spline.get_velocity(desired_time, R_GtoI, p_IinG, w_IinI, v_IinG);
+  // Finally lets create the current state
+  pose_state(0, 0) = desired_time;
+  pose_state.block(1, 0, 4, 1) = rot_2_quat(R_GtoI);
+  pose_state.block(5, 0, 3, 1) = p_IinG;
+  return success_vel;
 
 }
 
@@ -449,6 +491,7 @@ bool Simulator::get_next_imu(double &time_imu, Eigen::Vector3d &wm, Eigen::Vecto
   true_bias_accel(2) += sigma_ab * std::sqrt(dt) * w(gen_meas_imu);
 
   // Append the current true bias to our history
+ // hist_true_bias_time[timestamp_last_imu]=hist_true_bias_gyro.size();
   hist_true_bias_time.push_back(timestamp_last_imu);
   hist_true_bias_gyro.push_back(true_bias_gyro);
   hist_true_bias_accel.push_back(true_bias_accel);
@@ -704,6 +747,7 @@ void Simulator::generate_points(const Eigen::Matrix3d &R_GtoI, const Eigen::Vect
   camD(3) = cam_d(7);
 
 
+  std::vector<Eigen::Vector2f,Eigen::aligned_allocator<Eigen::Vector2f>> pts(num_pts);
   // Generate the desired number of features
   for (int i = 0; i < numpts; i++) {
 
@@ -717,16 +761,20 @@ void Simulator::generate_points(const Eigen::Matrix3d &R_GtoI, const Eigen::Vect
     Eigen::Vector2f mat;
     mat(0) = u_dist;
     mat(1) = v_dist;
+    pts[i]=mat;
+  }
 
-
+  std::vector<Eigen::Vector2f,Eigen::aligned_allocator<Eigen::Vector2f>> undist_pts(num_pts);
     // Undistort this point to our normalized coordinates (false=radtan, true=fisheye)
     if (camera_fisheye.at(camid)) {
-      FishEyeundistortPoints(mat, mat, camK, camD);
+      FishEyeundistortPoints(pts, undist_pts, camK, camD);
     } else {
-      undistortPoints(mat, mat, camK, camD);
+      undistortPoints(pts, undist_pts, camK, camD);
     }
 
+  for (int i = 0; i < numpts; i++) {
     // Construct our return vector
+    const Eigen::Vector2f& mat=undist_pts[i];
     Eigen::Vector3d uv_norm;
     uv_norm(0) = mat(0);
     uv_norm(1) = mat( 1);

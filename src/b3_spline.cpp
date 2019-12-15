@@ -86,6 +86,7 @@ void BsplineSE3::feed_trajectory(std::vector<Eigen::VectorXd> traj_points) {
 
   // The start time of the system is two dt in since we need at least two older control points
   timestamp_start = timestamp_min + 2 * dt;
+  timestamp_end = timestamp_max;
 //  ROS_INFO("[B-SPLINE]: start trajectory time of %.6f",timestamp_start);
 
 }

@@ -172,6 +172,10 @@ public:
     return timestamp_start;
   }
 
+  double get_end_time() {
+    return timestamp_end;
+  }
+
 
 protected:
 
@@ -180,6 +184,8 @@ protected:
 
   /// Start time of the system
   double timestamp_start;
+
+  double timestamp_end;
 
   /// Our control SE3 control poses (R_ItoG, p_IinG)
   std::map<double,Eigen::MatrixXd> control_points;
