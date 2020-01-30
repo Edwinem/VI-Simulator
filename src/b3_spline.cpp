@@ -256,7 +256,7 @@ bool BsplineSE3::get_acceleration(double timestamp, Eigen::Matrix3d &R_GtoI, Eig
 
 }
 
-bool BsplineSE3::find_bounding_poses(double timestamp, std::map<double, Eigen::MatrixXd> &poses,
+bool BsplineSE3::find_bounding_poses(double timestamp, std::map<double,Eigen::MatrixXd> &poses,
                                      double &t0, Eigen::Matrix4d &pose0, double &t1, Eigen::Matrix4d &pose1) {
 
   // Set the default values
@@ -266,33 +266,37 @@ bool BsplineSE3::find_bounding_poses(double timestamp, std::map<double, Eigen::M
   pose1 = Eigen::Matrix4d::Identity();
 
   // Find the bounding poses
-  double min_time = -INFINITY;
-  double max_time = INFINITY;
   bool found_older = false;
   bool found_newer = false;
 
-  // Find the bounding poses for interpolation. If no older one is found, measurement is unusable
-  for (std::pair<const double, Eigen::MatrixXd> &pose : poses) {
-    if (pose.first > min_time && pose.first <= timestamp) {
-      min_time = pose.first;
+  // Find the bounding poses for interpolation.
+  auto lower_bound = poses.lower_bound(timestamp); // Finds timestamp or next(timestamp) if not availible
+  auto upper_bound = poses.upper_bound(timestamp); // Finds next(timestamp)
+
+  if(lower_bound != poses.end()) {
+    // Check that the lower bound is the timestamp. If not then we move iterator to previous timestamp so that
+    // the timestamp is bounded
+    if(lower_bound->first == timestamp) {
       found_older = true;
-    }
-    if (pose.first < max_time && pose.first > timestamp) {
-      max_time = pose.first;
-      found_newer = true;
+    } else if(lower_bound != poses.begin()) {
+      --lower_bound;
+      found_older = true;
     }
   }
 
-  // If we found the oldest one, set it
+  if(upper_bound != poses.end()) {
+    found_newer = true;
+  }
+
   if (found_older) {
-    t0 = min_time;
-    pose0 = poses.at(min_time);
+    t0 = lower_bound->first;
+    pose0 = lower_bound->second;
   }
 
   // If we found the newest one, set it
   if (found_newer) {
-    t1 = max_time;
-    pose1 = poses.at(max_time);
+    t1 = upper_bound->first;
+    pose1 = upper_bound->second;
   }
 
   // Assert the timestamps
@@ -304,7 +308,9 @@ bool BsplineSE3::find_bounding_poses(double timestamp, std::map<double, Eigen::M
 
 }
 
-bool BsplineSE3::find_bounding_control_points(double timestamp, std::map<double, Eigen::MatrixXd> &poses,
+
+
+bool BsplineSE3::find_bounding_control_points(double timestamp, std::map<double,Eigen::MatrixXd> &poses,
                                               double &t0, Eigen::Matrix4d &pose0, double &t1, Eigen::Matrix4d &pose1,
                                               double &t2, Eigen::Matrix4d &pose2, double &t3, Eigen::Matrix4d &pose3) {
 
@@ -326,44 +332,44 @@ bool BsplineSE3::find_bounding_control_points(double timestamp, std::map<double,
     return false;
 
   // Now find the poses that are below and above
-  double min_time = -INFINITY;
-  double max_time = INFINITY;
-  bool found_min_of_min = false;
-  bool found_max_of_max = false;
-  for (std::pair<const double, Eigen::MatrixXd> &pose : poses) {
-    if (pose.first > min_time && pose.first < t1) {
-      min_time = pose.first;
-      found_min_of_min = true;
-    }
-    if (pose.first < max_time && pose.first > t2) {
-      max_time = pose.first;
-      found_max_of_max = true;
-    }
+  auto iter_t1 = poses.find(t1);
+  auto iter_t2 = poses.find(t2);
+  // Check that t1 is not the first timestamp
+  if(iter_t1 == poses.begin()) {
+    return false;
   }
 
-  // If we found the oldest one, set it
-  if (found_min_of_min) {
-    t0 = min_time;
-    pose0 = poses.at(min_time);
+  auto iter_t0 = --iter_t1;
+  auto iter_t3 = ++iter_t2;
+
+  // Check that it is valid
+  if (iter_t3 == poses.end()) {
+    return false;
   }
 
-  // If we found the newest one, set it
-  if (found_max_of_max) {
-    t3 = max_time;
-    pose3 = poses.at(max_time);
-  }
+  // Set the oldest one
+  t0 = iter_t0->first;
+  pose0 = iter_t0->second;
+
+
+  // Set the newest one
+  t3 = iter_t3->first;
+  pose3 = iter_t3->second;
 
   // Assert the timestamps
-  if (success && found_min_of_min && found_max_of_max) {
+  if (success) {
     assert(t0 < t1);
     assert(t1 < t2);
     assert(t2 < t3);
   }
 
   // Return true if we found all four bounding poses
-  return (success && found_min_of_min && found_max_of_max);
+  return (success );
 
 }
+
+
+
 
 }
 

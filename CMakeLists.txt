@@ -3,13 +3,37 @@ project(vi_simulator)
 
 set(CMAKE_CXX_STANDARD 11)
 
-
+# Massively needed speedups
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops")
 
 option(WITH_PANGOLIN "Build with Pangolin Visualization" OFF)
 
+find_package(Eigen3)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
+include_directories(src)
+
+add_library(vi_simulator
+        src/b3_spline.h
+        src/b3_spline.cpp
+        src/common_types.cpp
+        src/common_types.h
+        src/common_ops.h
+        src/vio_sim.cpp
+        src/vio_sim.h
+        src/opencv_reimplementations.h)
+
+add_executable(example examples/example.cpp)
+add_executable(profile examples/profile.cpp)
+
+target_link_libraries(profile vi_simulator)
+target_link_libraries(example vi_simulator)
+
+
+
+
+
 if(${WITH_PANGOLIN})
-
-
 # Hack to disable CPack in Pangolin.
 macro(include)
     if(NOT ${ARGV0} STREQUAL "CPack")
@@ -76,24 +100,6 @@ if (EIGEN3_INCLUDE_DIR MATCHES "^${CMAKE_SOURCE_DIR}.*")
 endif()
 
 endif()
-
-
-
-find_package(Eigen3)
-include_directories(${EIGEN3_INCLUDE_DIR})
-
-include_directories(src)
-
-add_library(vi_simulator
-        src/b3_spline.h
-        src/b3_spline.cpp
-        src/common_types.cpp src/common_types.h src/common_ops.h src/vio_sim.cpp src/vio_sim.h src/opencv_reimplementations.h)
-
-add_executable(main examples/main.cpp)
-add_executable(profile examples/profile.cpp)
-
-target_link_libraries(main vi_simulator)
-target_link_libraries(profile vi_simulator)
 
 if(${WITH_PANGOLIN})
     add_executable(visualization examples/visualized_sim.cpp)

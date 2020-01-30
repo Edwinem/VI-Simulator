@@ -332,10 +332,6 @@ Simulator::Simulator(SimParams sim_params) {
       // We have finished generating features
       if (!success_pose)
         break;
-//      Eigen::Matrix4d gt_pose=Eigen::Matrix4d::Identity();
-//      gt_pose.block<3,3>(0,0)=R_GtoI.transpose();
-//      gt_pose.block<3,1>(0,3)=p_IinG;
-//      gt_poses[i].push_back(gt_pose);
       // Get the uv features for this frame
       std::vector<std::pair<size_t, Eigen::VectorXf>> uvs = project_pointcloud(R_GtoI, p_IinG, i, featmap);
       // If we do not have enough, generate more
@@ -349,9 +345,6 @@ Simulator::Simulator(SimParams sim_params) {
         double value=(double(counter)/num_iter)*100.0;
         std::cout << total_percentage << "%\n";
         total_percentage+=percentage;
-        if(total_percentage==20){
-          break;
-        }
       }
 
     }

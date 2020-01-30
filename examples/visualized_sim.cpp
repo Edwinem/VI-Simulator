@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
     glColor3f(1.0, 0.0, 0.0);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //pangolin::glDrawPoints(pts);
+    pangolin::glDrawPoints(pts);
 
     if (sim.ok()) {
       bool val = sim.get_next_imu(time_imu, gyro, acc);
@@ -161,9 +161,9 @@ int main(int argc, char **argv) {
         Mat33d Rot = quat_2_Rot(pose_state.block(1, 0, 4, 1));
         gt_pose.block<3, 3>(0, 0) = Rot.transpose();
         gt_pose.block<3, 1>(0, 3) = p;
-        //DrawCameraFrustrum(gt_pose);
+        DrawCameraFrustrum(gt_pose);
       } else if (first_cam_pose) {
-        //DrawCameraFrustrum(gt_pose);
+        DrawCameraFrustrum(gt_pose);
       }
 
     } else {

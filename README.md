@@ -22,4 +22,4 @@ results.
 
 ## Credit
 
-University of Delaware's OpenVINS project.
+University of Delaware's [OpenVINS](https://github.com/rpng/open_vins) project.
