@@ -4,8 +4,6 @@
 #include <vector>
 
 
-
-
 /**
  * @brief Reimplementations of OpenCV Undistort Functions
  *
@@ -345,7 +343,7 @@ void FishEyeundistortPointsIMPL(const std::vector<Eigen::Matrix<POINT_FLOAT, 2, 
     // the current camera model is only valid up to 180 FOV
     // for larger FOV the loop below does not converge
     // clip values so we still get plausible results for super fisheye images > 180 grad
-    theta_d = std::min(std::max(-M_PI / 2., theta_d), M_PI / 2.);
+    theta_d = std::min(std::max(double(-EIGEN_PI / 2.), theta_d), double(EIGEN_PI / 2.));
 
     if (theta_d > 1e-8) {
       // compensate distortion iteratively
