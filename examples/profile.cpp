@@ -3,10 +3,10 @@
 #include <iostream>       // std::cout, std::endl
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
+#include <ctime>
 
 #include <vio_sim.h>
 #include <common_ops.h>
-
 
 int main(int argc, char **argv) {
 

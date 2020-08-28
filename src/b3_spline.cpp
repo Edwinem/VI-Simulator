@@ -129,6 +129,7 @@ bool BsplineSE3::get_pose(double timestamp, Eigen::Matrix3d &R_GtoI, Eigen::Vect
 bool BsplineSE3::get_pose_hamiltonian(double timestamp, Eigen::Matrix3d &R_ItoG, Eigen::Vector3d &p_IinG) {
   bool val = get_pose(timestamp, R_ItoG, p_IinG);
   R_ItoG = R_ItoG.transpose();
+  return val;
 }
 
 bool BsplineSE3::get_velocity(double timestamp,

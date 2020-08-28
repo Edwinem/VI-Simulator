@@ -20,7 +20,7 @@
  */
 #include "vio_sim.h"
 #include <iostream>
-#include <unistd.h>
+//#include <unistd.h>
 #include <common_ops.h>
 #include <opencv_reimplementations.h>
 
