@@ -433,7 +433,7 @@ bool Simulator::get_pose(double desired_time, Eigen::Matrix<double, 8, 1> &pose_
 
 }
 
-bool Simulator::get_next_imu(double &time_imu, Eigen::Vector3d &wm, Eigen::Vector3d &am) {
+bool Simulator::get_next_imu(double &time_imu, Eigen::Vector3d &wm, Eigen::Vector3d &am, Eigen::Vector3d &wb, Eigen::Vector3d &ab) {
 
   // Return if the camera measurement should go before us
   if (timestamp_last_cam + 1.0 / freq_cam < timestamp_last_imu + 1.0 / freq_imu)
@@ -489,9 +489,19 @@ bool Simulator::get_next_imu(double &time_imu, Eigen::Vector3d &wm, Eigen::Vecto
   hist_true_bias_gyro.push_back(true_bias_gyro);
   hist_true_bias_accel.push_back(true_bias_accel);
 
+
+  wb = true_bias_gyro;
+  ab = true_bias_accel;
+
   // Return success
   return true;
 
+}
+
+bool Simulator::get_next_imu(double &time_imu, Eigen::Vector3d &wm, Eigen::Vector3d &am) { 
+  Eigen::Vector3d wb;
+  Eigen::Vector3d ab;
+  return get_next_imu(time_imu, wm, am, wb, ab);
 }
 
 bool Simulator::get_next_cam(double &time_cam,

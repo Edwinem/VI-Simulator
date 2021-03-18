@@ -132,6 +132,16 @@ public:
    */
   bool get_next_imu(double &time_imu, Eigen::Vector3d &wm, Eigen::Vector3d &am);
 
+  /**
+   * @brief Gets the next inertial reading if we have one.
+   * @param time_imu Time that this measurement occured at
+   * @param wm Angular velocity measurement in the inertial frame
+   * @param am Linear velocity in the inertial frame
+   * @param wm Angular velocity bias in the inertial frame
+   * @param am Linear velocity bias in the inertial frame
+   * @return True if we have a measurement
+   */
+  bool get_next_imu(double &time_imu, Eigen::Vector3d &wm, Eigen::Vector3d &am, Eigen::Vector3d &wb, Eigen::Vector3d &ab);
 
   /**
    * @brief Gets the next inertial reading if we have one.
