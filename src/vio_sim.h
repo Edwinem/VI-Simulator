@@ -159,12 +159,12 @@ public:
   }
 
   /// Access function for the true camera intrinsics
-  std::unordered_map<size_t,Eigen::VectorXd> get_true_intrinsics() {
+  std::unordered_map<size_t,Eigen::VectorXd>& get_true_intrinsics() {
     return camera_intrinsics;
   }
 
   /// Access function for the true camera extrinsics
-  std::unordered_map<size_t,Eigen::VectorXd> get_true_extrinsics() {
+  std::unordered_map<size_t,Eigen::VectorXd>& get_true_extrinsics() {
     return camera_extrinsics;
   }
 
