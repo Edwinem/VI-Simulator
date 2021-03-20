@@ -708,8 +708,7 @@ std::vector<std::pair<size_t, Eigen::VectorXf>> Simulator::project_pointcloud(co
     }
 
     // Else we can add this as a good projection
-    uvs.push_back({feat.first, uv_dist});
-
+    uvs.push_back({ feat.first, Eigen::Vector3f(uv_dist[0], uv_dist[1], p_FinC[2]) });
   }
 
   // Return our projections
